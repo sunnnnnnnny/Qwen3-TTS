@@ -92,16 +92,17 @@ def main():
     print("=" * 60)
 
     start = time.time()
+    model_dir = "/sharedir/nlp/workspace/yuqiangz_living_data/models/Qwen3-TTS-12Hz-0.6B-Base"
     model = Qwen3TTSModel.from_pretrained(
-        "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-        device_map="cuda:0",
+        model_dir,
+        device_map="cuda:7",
         dtype=torch.bfloat16,
-        attn_implementation="flash_attention_2",
     )
     log_time(start, "Model loaded")
 
     # Reference audio setup
     ref_audio_path = "kuklina-1.wav"
+    ref_audio_path = "zero_shot_prompt.wav"
     ref_text = (
         "Это брат Кэти, моей одноклассницы. А что у тебя с рукой? И почему ты голая? У него ведь куча наград по "
         "боевым искусствам. Кэти рассказывала, правда, Лео? Понимаешь кого ты побила, Лая? "
@@ -109,6 +110,7 @@ def main():
         "Лай всегда откопает что-нибудь этакое. Да, жаль только, что занимает почти всё её время. "
         "Не понимаю, почему эта рухлядь не может подождать, пока ты проведешь время с сестрой."
     )
+    ref_text = ("希望你以后能够做的比我还好呦。")
 
     start = time.time()
     voice_clone_prompt = model.create_voice_clone_prompt(
@@ -119,6 +121,7 @@ def main():
 
     # Test text
     test_text = "Всем привет! Это тестовый текст для озвучки! Теперь стриминг звучит хорошо сразу."
+    test_text = "收到好友从远方寄来的生日礼物，那份意外的惊喜与深深的祝福让我心中充满了甜蜜的快乐，笑容如花儿般绽放。"
 
     results = []
 
@@ -130,7 +133,7 @@ def main():
     start = time.time()
     wavs, sr = model.generate_voice_clone(
         text=test_text,
-        language="Russian",
+        language="Chinese",
         voice_clone_prompt=voice_clone_prompt,
     )
     standard_time = time.time() - start
@@ -262,3 +265,14 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+"""
+Method                     1st Chunk    Total    Audio    RTF  Chunks  Speedup
+--------------------------------------------------------------------------------
+Standard (no streaming)          N/A   17.97s   10.78s   1.67     N/A      N/A
+streaming_baseline             0.53s   15.13s   10.00s   1.51      32    1.00x
+streaming_optimized            0.23s    6.70s   10.88s   0.62      34    2.26x
+streaming_optimized_2          0.23s    6.96s   11.52s   0.60      36    2.17x
+
+Chunk duration: ~316ms (7596 samples @ 24000Hz)
+"""

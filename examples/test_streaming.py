@@ -14,11 +14,12 @@ def log_time(start, operation):
 total_start = time.time()
 
 start = time.time()
+model_dir = "/sharedir/nlp/workspace/yuqiangz_living_data/models/Qwen3-TTS-12Hz-1.7B-Base"
 clone_model = Qwen3TTSModel.from_pretrained(
-    "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    model_dir,
     device_map="cuda:0",
     dtype=torch.bfloat16,
-    attn_implementation="flash_attention_2",
+    # attn_implementation="flash_attention_2",
 )
 start = log_time(start, "Load Base model")
 
@@ -26,6 +27,7 @@ start = log_time(start, "Load Base model")
 # torch.compile doesn't help much for autoregressive generation due to dynamic shapes
 
 ref_audio_path = "kuklina-1.wav"
+ref_audio_path = "zero_shot_prompt.wav"
 ref_text = (
     "Это брат Кэти, моей одноклассницы. А что у тебя с рукой? И почему ты голая? У него ведь куча наград по "
     "боевым искусствам. Кэти рассказывала, правда, Лео? Понимаешь кого ты побила, Лая? "
@@ -33,6 +35,7 @@ ref_text = (
     "Лай всегда откопает что-нибудь этакое. Да, жаль только, что занимает почти всё её время. "
     "Не понимаю, почему эта рухлядь не может подождать, пока ты проведешь время с сестрой."
 )
+ref_text = ("希望你以后能够做的比我还好呦。")
 
 voice_clone_prompt = clone_model.create_voice_clone_prompt(
     ref_audio=ref_audio_path,
@@ -42,13 +45,14 @@ start = log_time(start, "Create voice clone prompt")
 
 # Test sentence
 test_text = "Всем привет! Это тестовый текст для озвучки! Стриминг звучит нормально только через несколько секунд."
+test_text = "收到好友从远方寄来的生日礼物，那份意外的惊喜与深深的祝福让我心中充满了甜蜜的快乐，笑容如花儿般绽放。"
 
 # ============== Standard generation ==============
 print("\n--- Standard generation ---")
 start = time.time()
 wavs, sr = clone_model.generate_voice_clone(
     text=test_text,
-    language="Russian",
+    language="Chinese",
     voice_clone_prompt=voice_clone_prompt,
 )
 standard_time = time.time() - start
@@ -61,7 +65,6 @@ start = time.time()
 chunks = []
 first_chunk_time = None
 chunk_count = 0
-
 for chunk, chunk_sr in clone_model.stream_generate_voice_clone(
     text=test_text,
     language="Russian",
