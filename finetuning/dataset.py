@@ -18,6 +18,7 @@ from typing import Any, List, Tuple, Union
 import librosa
 import numpy as np
 import torch
+import torchaudio
 from qwen_tts.core.models.configuration_qwen3_tts import Qwen3TTSConfig
 from qwen_tts.core.models.modeling_qwen3_tts import mel_spectrogram
 from torch.utils.data import Dataset
@@ -134,8 +135,17 @@ class TTSDataset(Dataset):
         ref_audio_list = self._ensure_list(ref_audio_path)
         normalized = self._normalize_audio_inputs(ref_audio_list)
         wav,sr = normalized[0]
+        # resampler = torchaudio.transforms.Resample(sr, 24000)
+        # wav_24k = resampler(wav)
+        wav_24k = librosa.resample(
+            wav, 
+            orig_sr=sr, 
+            target_sr=24000,
+            res_type='soxr_hq'  # 高质量重采样算法
+        )
+        sr = 24000
 
-        ref_mel = self.extract_mels(audio=wav, sr=sr)
+        ref_mel = self.extract_mels(audio=wav_24k, sr=sr)
 
         return {
             "text_ids": text_ids[:,:-5],    # 1 , t

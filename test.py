@@ -54,5 +54,5 @@ def demo1_custom_voice_gen():
     )
     sf.write("output_custom_voice_1.wav", wavs[0], sr)
     sf.write("output_custom_voice_2.wav", wavs[1], sr)
-
-demo1_custom_voice_gen()
+demo0()
+# demo1_custom_voice_gen()
